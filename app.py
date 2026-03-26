@@ -368,7 +368,12 @@ with tab4:
 # IRON HARVEST ELITE ENGINE
 # =============================================================================
 
-from scipy.stats import norm as _norm
+import math
+# REMOVED: from scipy.stats import norm as _norm
+
+def norm_cdf(x):
+    """Standard normal cumulative distribution function using built-in math."""
+    return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
 
 def black_scholes_call(S, K, T, r, sigma):
     """Standard Black-Scholes call price and delta."""
@@ -376,23 +381,20 @@ def black_scholes_call(S, K, T, r, sigma):
         return max(S - K, 0.0), (1.0 if S > K else 0.0)
     d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
-    price = S * _norm.cdf(d1) - K * np.exp(-r * T) * _norm.cdf(d2)
-    delta = float(_norm.cdf(d1))
+    price = S * norm_cdf(d1) - K * np.exp(-r * T) * norm_cdf(d2)
+    delta = float(norm_cdf(d1))
     return max(price, 0.0), delta
 
 
 def black_scholes_put(S, K, T, r, sigma):
     """Standard Black-Scholes put price and delta."""
     if T <= 0 or sigma <= 0:
-        return max(K - S, 0.0), (_norm.cdf(-1.0))
+        return max(K - S, 0.0), (-1.0 if K > S else 0.0)
     d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
-    price = K * np.exp(-r * T) * _norm.cdf(-d2) - S * _norm.cdf(-d1)
-    delta = float(_norm.cdf(d1) - 1.0)
+    price = K * np.exp(-r * T) * norm_cdf(-d2) - S * norm_cdf(-d1)
+    delta = float(norm_cdf(d1) - 1.0)
     return max(price, 0.0), delta
-
-
-def find_strike_for_delta(S, T, r, sigma, target_delta, option_type="call",
                            lo_pct=0.5, hi_pct=1.5, steps=200):
     """Binary-search strike for a target delta using Black-Scholes."""
     lo, hi = S * lo_pct, S * hi_pct
