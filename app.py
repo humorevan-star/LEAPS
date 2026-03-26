@@ -453,7 +453,11 @@ class IronHarvestBacktester:
         max_dd   = float(uw.min())
         n_years  = len(hist) / 252
         cagr     = ((nav_arr[-1] / nav_arr[0]) ** (1 / n_years) - 1) * 100
-        m_rets   = np.diff(nav_arr[::21]) / nav_arr[:-1:21]
+
+        # FIX: sample monthly then diff within the sampled array
+        monthly  = nav_arr[::21]
+        m_rets   = np.diff(monthly) / monthly[:-1]
+
         sharpe   = (m_rets.mean() / (m_rets.std() + 1e-9)) * np.sqrt(12)
         win_rate = cs_wins / max(cs_trades, 1) * 100
 
@@ -904,18 +908,20 @@ with tab_bt:
     ihe_curve  = np.array(ihe_results["nav"])
     dates      = hist.index
 
-    # SPY CAGR
-    n_years  = ihe_results["n_years"]
-    spy_cagr = ((spy_curve[-1] / spy_curve[0]) ** (1 / n_years) - 1) * 100
-    spy_dd   = float(((spy_curve - np.maximum.accumulate(spy_curve)) / np.maximum.accumulate(spy_curve) * 100).min())
-    spy_mrets= np.diff(spy_curve[::21]) / spy_curve[:-1:21]
-    spy_sharpe= (spy_mrets.mean() / (spy_mrets.std() + 1e-9)) * np.sqrt(12)
+    # SPY metrics — FIX: sample monthly then diff within the sampled array
+    n_years      = ihe_results["n_years"]
+    spy_cagr     = ((spy_curve[-1] / spy_curve[0]) ** (1 / n_years) - 1) * 100
+    spy_dd       = float(((spy_curve - np.maximum.accumulate(spy_curve)) / np.maximum.accumulate(spy_curve) * 100).min())
+    spy_monthly  = spy_curve[::21]
+    spy_mrets    = np.diff(spy_monthly) / spy_monthly[:-1]
+    spy_sharpe   = (spy_mrets.mean() / (spy_mrets.std() + 1e-9)) * np.sqrt(12)
 
-    # SPXL CAGR
-    spxl_cagr= ((spxl_curve[-1] / spxl_curve[0]) ** (1 / n_years) - 1) * 100
-    spxl_dd  = float(((spxl_curve - np.maximum.accumulate(spxl_curve)) / np.maximum.accumulate(spxl_curve) * 100).min())
-    spxl_mrets=np.diff(spxl_curve[::21]) / spxl_curve[:-1:21]
-    spxl_sharpe=(spxl_mrets.mean() / (spxl_mrets.std() + 1e-9)) * np.sqrt(12)
+    # SPXL metrics — FIX: same pattern
+    spxl_cagr    = ((spxl_curve[-1] / spxl_curve[0]) ** (1 / n_years) - 1) * 100
+    spxl_dd      = float(((spxl_curve - np.maximum.accumulate(spxl_curve)) / np.maximum.accumulate(spxl_curve) * 100).min())
+    spxl_monthly = spxl_curve[::21]
+    spxl_mrets   = np.diff(spxl_monthly) / spxl_monthly[:-1]
+    spxl_sharpe  = (spxl_mrets.mean() / (spxl_mrets.std() + 1e-9)) * np.sqrt(12)
 
     # KPI grid
     st.markdown("#### Performance Summary")
