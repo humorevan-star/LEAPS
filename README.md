@@ -1,22 +1,41 @@
-# SPY LEAPS vs SPXL vs VOO Simulator
+# ⚔️ Iron Harvest Elite
 
-Interactive Streamlit app comparing three investment strategies:
-- **SPY LEAPS** — Deep-ITM calls (Jan 2027/2028, δ≈0.90, roll every 9mo)
-- **SPXL** — Direxion 3× Daily S&P 500 ETF
-- **VOO** — Vanguard S&P 500 ETF (benchmark)
+Institutional-grade systematic options strategy platform built with Streamlit.
 
-## Features
-- Portfolio growth chart over time
-- Annual return breakdown (gross gain, theta cost, net)
-- Historical crash drawdown comparison with real option math
-- Capital efficiency chart ($500 deployed across each instrument)
-- All charts update live with every slider change
+## Architecture
+
+```
+app.py
+├── OptionsEngine          Black-Scholes pricing, delta, theta, strike search
+├── MarketRegime           Regime classifier (VIX-based delta + coverage rules)
+├── DataFetcher            yfinance live + historical data with caching
+├── IronHarvestBacktester  Daily event-driven backtest engine (2010–today)
+└── SignalEngine           Generates today's exact operational signals
+```
+
+## Two Tabs
+
+### 1. Forward Execution Engine
+Pulls live SPY, VIX, and T-bill data and outputs:
+- Current market regime (Strong Bull / Neutral / Fear)
+- Exact LEAPS orders: strike, delta, contracts, cost
+- Call spread orders: sell strike, buy strike, credit, contracts
+- Puts orders: strike, contracts, allocation
+- Cash deployment signal (which tier triggered)
+- Crash playbook activation if applicable
+- Weekly/monthly checklist
+
+### 2. Backtesting Engine (Jan 2010 → Today)
+Compares three strategies:
+- **SPY** buy and hold (1× benchmark)
+- **SPXL** buy and hold (3× benchmark, actual prices)
+- **Iron Harvest Elite** (full simulation)
+
+Outputs: CAGR, Max Drawdown, Sharpe Ratio, equity curve, drawdown chart, exposure chart, CS income chart.
 
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/spy-leaps-simulator
-cd spy-leaps-simulator
 pip install -r requirements.txt
 streamlit run app.py
 ```
@@ -24,30 +43,33 @@ streamlit run app.py
 ## Deploy to Streamlit Cloud
 
 1. Push to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect repo → set `app.py` as entry point → Deploy
+2. Go to share.streamlit.io
+3. Connect repo → set `app.py` → Deploy
 
-## Math
+## Strategy Summary
 
-**LEAPS annual return on capital:**
-```
-old_premium = itm_pct × 1.20
-new_intrinsic = max(ann_return + itm_pct, 0)
-new_premium = new_intrinsic × 1.20
-return = new_premium / old_premium − 1 − theta − roll_cost
-```
+| Component | Allocation | Engine |
+|---|---|---|
+| SPY LEAPS (12–18mo, 20–30% ITM) | 70–75% | A — Growth |
+| Cash / T-Bills | 10–15% | Drawdown fuel |
+| Protective Puts (20–30% OTM, 6–9mo) | 3–5% | C — Tail hedge |
+| Call Spreads (0.20–0.30Δ, 30–45 DTE) | Overlay | B — Income |
 
-**LEAPS drawdown (real option math):**
-- If crash < ITM%: option stays ITM, proportional intrinsic loss
-- If crash > ITM%: option goes OTM, drops to small time value only
-- Max loss: 100% of premium paid (not more)
+### Delta System (non-negotiable)
+| VIX | Regime | Target Delta |
+|---|---|---|
+| < 15 | Strong Bull | 75–80Δ |
+| 15–25 | Neutral | 80–85Δ |
+| > 25 | Fear/Crash | 90–95Δ |
 
-**SPXL vol drag (Ito's lemma):**
-```
-drag = L(L−1)/2 × σ²
-net_return = 3 × r_SPY − drag − 0.91%
-```
+### Cash Deployment
+| SPY Drawdown | Action |
+|---|---|
+| −5% | Deploy 25% of reserve |
+| −10% | Deploy 25% of reserve |
+| −20% | Deploy 25% + halt call selling |
+| −30% | Deploy 100% remaining |
 
 ## Disclaimer
 
-Educational simulation only. Not financial advice. Options involve risk of total loss of premium. Consult a licensed advisor before trading.
+Educational simulation only. Not financial advice. Options trading involves significant risk of total loss of premium paid. Consult a licensed financial advisor before trading.
